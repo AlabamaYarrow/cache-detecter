@@ -7,13 +7,17 @@
 
 #define BOTTOM_SIZE 100 
 #define TOP_SIZE 70000000 
-#define PAYLOAD_SIZE 7
+#define PAYLOAD_SIZE 3
 #define ITERATIONS 5000000
-#define ITERATION_CYCLES 30
+#define ITERATION_CYCLES 20
+#define SECS_TO_NANOSECS 1000000000
+
+
 
 struct Node {
 	struct Node *next;
 	char payload[PAYLOAD_SIZE]; 
+	int visited;
 };
 
 void print_cpu_info(FILE* fp);
@@ -78,7 +82,6 @@ void print_cpu_info(FILE* fp) {
 
 void do_iteration(FILE* fp, int is_random) {
 
-	fprintf(fp, "Total iterations: %i\n", ITERATIONS);
 	double iteration_time = 0;
 
 	size_t node_size = sizeof(struct Node);
@@ -88,16 +91,20 @@ void do_iteration(FILE* fp, int is_random) {
 
 	for(size_t size = elements_in_1k; size < elements_in_10M; size *= 2) {
 		struct Node *buff = malloc(size * sizeof(struct Node));
-		
-		if (is_random) {
-			for(size_t i = 0; i < size - 1; i++) {
-				buff[i].next = &buff[ get_random(size) ];
-			}	
-		} else {
-			for(size_t i = 0; i < size - 1; i++) {
+
+		for(size_t i = 0; i < size - 1; i++) {
 				buff[i].next = &buff[i+1];
-			}	
-		}		
+		}	
+
+		if (is_random) {				
+			for(size_t i = 0; i < size - 1; i++) {
+				struct Node temp;
+				size_t index = get_random(size - 2);
+				temp = buff[i];
+				buff[i] = buff[index];
+				buff[index] = temp;
+			}
+		}
 		buff[size - 1].next = &buff[0];
 
 		clock_t start, end; 
@@ -116,7 +123,6 @@ void do_iteration(FILE* fp, int is_random) {
 
 		iteration_time /= ITERATION_CYCLES;
 		
-
 		free(buff);
 
 		fprintf(fp, "%zd", node_size*size);
